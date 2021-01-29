@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <iostream>
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -11,20 +13,27 @@ float y_off = 0;
 float ds = .01;
 float v = 0.001;
 float a = 0.01;
+float cx = 1;
+float cy = 0;
+float cz = 0;
+float speed = 2;
+float pitch = 0;
+float yaw = 0;
+
 
 void zoom(GLFWwindow* window, double xoffset, double yoffset)
 {
     scale += scale *yoffset * 0.1;
-    if (scale <= .5) scale = 0.5;
+    if (scale <= .1) scale = 0.1;
 }
-
+ 
 void scroll(GLFWwindow* window, double xpos, double ypos)
 {
     static double lx, ly;
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        x_off += 3.5 * (lx - xpos) /(1920 * scale);
-        y_off += 2 *(ypos - ly) /(1080 * scale);
+        yaw += (lx-xpos) / 20;
+        pitch += (ypos - ly) / 20;
     }
 
     std::cout << "pos: " << xpos << ", " << ypos << std::endl;
@@ -47,7 +56,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
-    GLFWwindow* win = glfwCreateWindow(1920, 1080, "the mandelbrot set", glfwGetPrimaryMonitor(), NULL);
+    GLFWwindow* win = glfwCreateWindow(600, 600, "raymarching", NULL, NULL);
     if (!win)
     {
         printf("window creation failed!\n");
@@ -65,7 +74,7 @@ int main()
     glfwSetScrollCallback(win, zoom);
     glfwSetKeyCallback(win, close);
 
-    unsigned int shader = shaders::shader_program("shaders/mandelbrot.vert", "shaders/mandelbrot.frag");
+    unsigned int shader = shaders::shader_program("shaders/raymarch.vert", "shaders/raymarch.frag");
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -105,6 +114,8 @@ int main()
     
     int scaleloc = glGetUniformLocation(shader, "scale");
     int offsetloc = glGetUniformLocation(shader, "offset");
+    int cposloc = glGetUniformLocation(shader, "cposition");
+    int rotloc = glGetUniformLocation(shader, "rot");
     glUseProgram(shader);
 
     
@@ -119,6 +130,9 @@ int main()
     while (!glfwWindowShouldClose(win))
     {
         //frametime = glfwGetTime();
+        cz += speed*((glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS) - (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)) * (1 + (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS));
+        cx += speed*((glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS) - (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS))* (1 + (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS));
+        cy += speed*((glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS) - (glfwGetKey(win, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS))* (1 + (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS));
 
         glClearColor(.2f, .2f, .8f, 1.0f); // rgba background
         glClear(GL_COLOR_BUFFER_BIT);
@@ -132,6 +146,8 @@ int main()
 
         glUniform1f(scaleloc, scale);
         glUniform2f(offsetloc, x_off, y_off);
+        glUniform3f(cposloc, cx, cy, cz);
+        glUniform2f(rotloc, yaw, pitch);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
         
