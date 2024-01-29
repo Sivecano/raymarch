@@ -14,6 +14,22 @@ uniform vec2 rot;
 
 vec3 cen = vec3(-offset.x,-offset.y, 10);
 
+vec3 modulus (vec3 vector , float cross)
+{
+	while (abs(vector.x) > cross/2) vector.x -= sign(vector.x)*cross;
+	while (abs(vector.y) > cross/2) vector.y -= sign(vector.y)*cross;
+	while (abs(vector.z) > cross/2) vector.z -= sign(vector.z)*cross;
+	return vector;
+} 
+
+vec3 stepmod (vec3 vector , float cross)
+{
+	if (abs(vector.x) > cross/2) vector.x -= sign(vector.x)*cross;
+	if (abs(vector.y) > cross/2) vector.y -= sign(vector.y)*cross;
+	if (abs(vector.z) > cross/2) vector.z -= sign(vector.z)*cross;
+	return vector;
+}
+
 float QqhToRgb(float q1, float q2, float hue)
 {
 	if (hue > 360) hue -= 360;
@@ -72,6 +88,11 @@ float planeSDF(vec3 from, vec3 point, vec3 normal)
 
 float TetrahedronSDF(vec3 from, vec3 center, float sidelength)
 {
+	for (int i = 0; i < 1; i++)
+	{
+		from = center + stepmod(from - center, 4);
+	}
+	
 	float f = 0.57735;
 	float a = planeSDF(from, vec3(sidelength, sidelength, sidelength) + center, vec3(-f, f, f));
 	float b = planeSDF(from, vec3(sidelength, -sidelength, -sidelength) + center, vec3(f, -f, f));
@@ -82,22 +103,30 @@ float TetrahedronSDF(vec3 from, vec3 center, float sidelength)
 }
 
 float distance(vec3 from) {
+  float len = 20;
+  vec3 center = cen;
+  float dist = cubeSDF(from, center, len); 
+ 
 
-	return TetrahedronSDF(from, cen, 3);
-    return min( max(cubeSDF(from, cen, 2), sphereSDF(from, cen, 2.5)) , planeSDF(from, vec3(0,0,18),vec3(0,0,-1)));
-    }
+  while (dist < len/2)
+  {
+    len /= 3;
+    vec3 off = from -center;
+    off.x = sign(off.x);
+    off.y = sign(off.y);
+    off.z = sign(off.z);
+    center += len * off;
+    dist = cubeSDF(from, center, len);
+  }
+  return dist;
 
-vec3 modulus (vec3 vector , float cross)
-{
-	while (vector.x > cross/2) vector.x -= cross;
-	while (vector.y > cross/2) vector.y -= cross;
-	while (vector.z > cross/2) vector.z -= cross;
-	while (vector.x < -cross/2) vector.x += cross;
-	while (vector.y < -cross/2) vector.y += cross;
-	while (vector.z < -cross/2) vector.z += cross;
-	return vector;
 
+
+    //return TetrahedronSDF(from, cen, 1);
+    //return min( max(cubeSDF(from, cen, 2), sphereSDF(from, cen, 2.5)),1);// planeSDF(from, vec3(0,0,18),vec3(0,0,-1)));
 }
+
+
 
 
 void main() {
@@ -105,16 +134,14 @@ void main() {
     vec3 tpos = pos;
     vec3 dp = normalize(vec3(pos.xy, scale));
     tpos.z = 0;
-    float d = 0.0001;
-    int i = 0;
-    int max_i = 10000;
+    float d = .00001;
+    int i = 1;
+    int max_i = 1000;
 	tpos += cposition;
 
     while (distance(tpos) > d && i < max_i) 
     {
-		tpos -= cen;
-		//tpos = modulus(tpos, 20);
-		tpos += cen;
+	//tpos = cen + modulus(tpos -cen, 20);
         tpos += distance(tpos) * dp;
         i++;
     }

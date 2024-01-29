@@ -56,7 +56,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
-    GLFWwindow* win = glfwCreateWindow(600, 600, "raymarching", NULL, NULL);
+    GLFWwindow* win = glfwCreateWindow(1000, 1000, "raymarching", NULL, NULL);
     if (!win)
     {
         printf("window creation failed!\n");
